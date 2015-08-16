@@ -1,5 +1,6 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QPixmap
 from Controller import Controller
 
 import os, sys, inspect
@@ -70,8 +71,15 @@ class Form(QMainWindow):
     mainLayout.addWidget(self.temp_deque_len_label,     4 , 1)
     mainLayout.addWidget(self.dummy_label,              5 , 1)
     
+    fire_icon = QPixmap("burn.png")
+    fire_label = QLabel()
+    fire_label.setPixmap(fire_icon)
+    
     self.statusBar = QStatusBar()
     self.statusBar.showMessage(self.control.states_list[self.control.state])
+    
+    self.statusBar.addWidget(fire_label)
+   
     
     centralWidget = QWidget()
     centralWidget.setLayout(mainLayout)
@@ -79,6 +87,8 @@ class Form(QMainWindow):
     self.setCentralWidget(centralWidget)
     self.setWindowTitle("Humidity Control V1.0")
     self.setStatusBar(self.statusBar)
+    
+    
 
     self.control.updated.connect(self.update_form_handle)
 
