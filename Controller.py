@@ -27,8 +27,8 @@ class Controller(QObject):
   def __init__(self, parent=None):
     super(Controller, self).__init__(parent)
     
-    temperature1 = 140 # TODO Read temperature sensor here
-    temperature2 = 140 # TODO Read temperature sensor here
+    temperature1 = 20 # TODO Read temperature sensor here
+    temperature2 = 20 # TODO Read temperature sensor here
     humidity1 = 0.55 # TODO Read humidity sensor here
     humidity2 = 0.55 # TODO Read humidyty sensor here
     
@@ -40,24 +40,28 @@ class Controller(QObject):
     self.compressor = Compressor()
     
     
-    self.temp_deque1 = deque([],60)
-    self.temp_deque2 = deque([],60)
+    self.temp_deque1 = deque([],180)
+    self.temp_deque2 = deque([],180)
     
-    self.states_list = ['starting','fast_drying','slow_drying','standby','failure','random_noise']
+    self.states_list = ['starting','fast_drying','slow_drying','standby','failure']
     
     self.state = 0
     
     self.equilibrium_moisture_content = calc_EMC(self.temperature,self.humidity)
     
-    self.EMC_fast_target = 0.0
+    self.EMC_fast_target = 18.0
     self.EMC_fast_error = 2.0
-    self.EMC_slow_target = 0.0
+    self.EMC_slow_target = 6.0
     self.EMC_slow_error = 1.0
     
     self.timer = QTimer(self)
-    self.timer.timeout.connect(self.state_random_noise)
+    self.timer.setSingleShot(False)
     self.timer.timeout.connect(self.dispatch_state(self.states_list[self.state]))
+    self.timer.timeout.connect(self.state_random_noise)
+    
     self.timer.start(100)
+    
+    self.reservoir = 1.0
     
   def update_EMC_handle(self):
     ''' This function simply recalculates EMC based on internal values, and then
@@ -70,17 +74,32 @@ class Controller(QObject):
   def state_random_noise(self):
     ''' Function to apply random noise to read values, for testing purposes only
     '''
-    temperature = self.temperature + random.uniform(-0.45, 0.55)
+    # Compute additional heat
+    if self.heater.get_heater1():
+      more_heat = 1
+    else:
+      more_heat = 0.0
+      
+    if self.heater.get_heater2():
+      more_heat = more_heat + 1
+    
+    
+    temperature = self.temperature + random.uniform(-0.60, 0.50) + more_heat
     self.temp_deque1.append(temperature)
-    temperature = self.temperature + random.uniform(-0.60, 0.70)
+    temperature = self.temperature + random.uniform(-0.80, 0.70) + more_heat
     self.temp_deque2.append(temperature)
     self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
-    self.humidity    = self.humidity    + random.uniform(-0.01, 0.01) + random.uniform(-0.01, 0.01)
+    self.humidity    = self.humidity    + random.uniform(-0.01, 0.02) * self.reservoir - self.compressor.get_state() * 0.01
+    self.reservoir = self.reservoir * 0.999
+    if self.humidity > 1:
+      self.humidity = 1
+    elif self.humidity < 0:
+      self.humidity = 0
     self.update_EMC_handle()
     
   def state_starting(self):
     ''' A state function meant to fill the deques and avoid starting bumps '''
-    if len(self.temp_deque1) == 60:
+    if len(self.temp_deque1) == 180:
       self.check_starting()
      
     
@@ -88,7 +107,9 @@ class Controller(QObject):
     self.state = 1
     self.compressor.inactive.connect(self.check_fast_drying)
     self.heater.half_heating = False
-    self.heater.set_min_max(30,60)
+    self.heater.set_min_max(86,140)
+    self.timer.timeout.disconnect(self.state_starting)
+    self.timer.timeout.connect(self.state_fast_drying)
       
   def state_fast_drying(self):
     ''' While fast drying, heat as much up to 60 C and keep EMC at target plus or minus 2% 
@@ -108,9 +129,11 @@ class Controller(QObject):
     # Change the connection with the disconnect signal
     self.compressor.inactive.disconnect(self.check_fast_drying)
     self.compressor.inactive.connect(self.check_slow_drying)
+    self.timer.timeout.disconnect(self.state_fast_drying)
+    self.timer.timeout.connect(self.state_slow_drying)
     # Make sure to set only one heater before slow drying
     self.heater.half_heating = True
-    self.heater.set_min_max(30,40)
+    self.heater.set_min_max(86,104)
     self.compressor.start_compressor()
       
   def state_slow_drying(self):

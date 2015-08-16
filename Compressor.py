@@ -42,7 +42,7 @@ class Compressor(QObject):
       if self.ready_state: # Physically start the compressor if possible
         self.compressor_state = True
         self.timer.stop()
-        self.timer.timeout.disconnect(self.become_inactive)
+        self.timer.timeout.disconnect()
         self.timer.start(3600) # Start an hour timer to prevent overheating
         self.timer.timeout.connect(self.react_to_overheat)
         self.updated.emit(self.compressor_state)
@@ -54,7 +54,7 @@ class Compressor(QObject):
     if self.compressor_state:
       # First deal with the timer, disconnect it from the overheat protection
       self.timer.stop()
-      self.timer.timeout.disconnect(self.react_to_overheat)
+      self.timer.timeout.disconnect()
       # Start the premature restart timer
       self.timer.start(1800)
       self.timer.timeout.connect(self.set_ready)
@@ -71,13 +71,16 @@ class Compressor(QObject):
       self.start_compressor()
     else: # If the compressor is ready to act, start a timer to trigger an inactive signal
       self.timer.stop()
-      self.timer.timeout.disconnect(self.set_ready)
+      self.timer.timeout.disconnect()
       self.timer.start(3600)
       self.timer.timeout.connect(self.become_inactive)
     self.ready.emit()
   
   def become_inactive(self):
     self.inactive.emit()
+    
+  def get_state(self):
+    return self.compressor_state
     
   def react_to_overheat(self): 
     '''TODO: Add possible overheating behavior here. For now, simply stop and restart
