@@ -71,14 +71,23 @@ class Form(QMainWindow):
     mainLayout.addWidget(self.temp_deque_len_label,     4 , 1)
     mainLayout.addWidget(self.dummy_label,              5 , 1)
     
-    fire_icon = QPixmap("burn.png")
-    fire_label = QLabel()
-    fire_label.setPixmap(fire_icon)
+    self.fire_icon = QPixmap("burn.png")
+    self.fire_label1 = QLabel()
+    self.fire_label2 = QLabel()
+    self.fire_label1.setPixmap(self.fire_icon)
+    self.fire_label2.setPixmap(self.fire_icon)
+    
+    self.water_icon = QPixmap("water.png")
+    self.water_label = QLabel()
+    self.water_label.setPixmap(self.water_icon)
     
     self.statusBar = QStatusBar()
+    self.statusBar.addPermanentWidget(self.fire_label1)
+    self.statusBar.addPermanentWidget(self.fire_label2)
+    self.statusBar.addPermanentWidget(self.water_label)
     self.statusBar.showMessage(self.control.states_list[self.control.state])
     
-    self.statusBar.addWidget(fire_label)
+    
    
     
     centralWidget = QWidget()
@@ -101,6 +110,22 @@ class Form(QMainWindow):
     self.temp_deque_len_label.setNum(len(self.control.temp_deque1))
     self.dummy_label.setNum(self.control.state)
     self.statusBar.showMessage(self.control.states_list[self.control.state])
+    
+  def update_water_icon(self, status):
+    if status:
+      self.water_label.setPixmap(self.water_icon)
+    else:
+      self.water_label.clear()
+      
+  def update_fire_icons(self, status1, status2):
+    if status1:
+      self.fire_label1.setPixmap(self.fire_icon)
+    else:
+      self.fire_label1.clear()
+    if status2:
+      self.fire_label2.setPixmap(self.fire_icon)
+    else:
+      self.fire_label2.clear()
 
 
 if __name__ == '__main__':
