@@ -2,7 +2,18 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from Controller import Controller
 
-class Form(QWidget):
+import os, sys, inspect
+# realpath() will make your script run, even if you symlink it :)
+cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
+if cmd_folder not in sys.path:
+  sys.path.insert(0, cmd_folder)
+
+# use this if you want to include modules from a subfolder
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"Icons")))
+if cmd_subfolder not in sys.path:
+  sys.path.insert(0, cmd_subfolder)
+
+class Form(QMainWindow):
   update_form = pyqtSignal()
 
   def __init__(self, parent=None):
@@ -59,11 +70,15 @@ class Form(QWidget):
     mainLayout.addWidget(self.temp_deque_len_label,     4 , 1)
     mainLayout.addWidget(self.dummy_label,              5 , 1)
     
+    self.statusBar = QStatusBar()
+    self.statusBar.showMessage(self.control.states_list[self.control.state])
     
+    centralWidget = QWidget()
+    centralWidget.setLayout(mainLayout)
     
-    
-    self.setLayout(mainLayout)
-    self.setWindowTitle("Humidity Control V1.0")    
+    self.setCentralWidget(centralWidget)
+    self.setWindowTitle("Humidity Control V1.0")
+    self.setStatusBar(self.statusBar)
 
     self.control.updated.connect(self.update_form_handle)
 
@@ -75,6 +90,7 @@ class Form(QWidget):
     self.emc_value_label.setNum(self.control.equilibrium_moisture_content)
     self.temp_deque_len_label.setNum(len(self.control.temp_deque1))
     self.dummy_label.setNum(self.control.state)
+    self.statusBar.showMessage(self.control.states_list[self.control.state])
 
 
 if __name__ == '__main__':
