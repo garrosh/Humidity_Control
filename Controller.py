@@ -1,0 +1,147 @@
+from PyQt5.QtCore import *
+from calc_EMC import calc_EMC
+from collections import deque
+from statistics import mean
+from Compressor import Compressor
+from Heater import Heater
+import random
+
+class Controller(QObject):
+  ''' Humidity controller class
+  
+  This class is a self contained container which tries to stabilize the
+  Equilibrium Moisture Content of the wood by using the Hailwood-Horrobin equation
+  (see calc_EMC.py for details)
+  
+  Drying is done in two stages. In the first stage, while the wood is green, the controller
+  attempts to keep the air at the requested EMC without interruption. Once the controller
+  notices it hasn't dried for a long (TODO: Determine interval) time, it moves to the second stage,
+  where it tries to bring the air to the specified EMC for a while (TODO: Determine interval) and
+  then lets the wood balance itself for an other while (TODO: Determine interval). When the controller
+  notices that balancing doesn't influence ambiant humidity, the wood is considered dried.
+  
+  '''
+ 
+  updated = pyqtSignal()
+
+  def __init__(self, parent=None):
+    super(Controller, self).__init__(parent)
+    
+    temperature1 = 140 # TODO Read temperature sensor here
+    temperature2 = 140 # TODO Read temperature sensor here
+    humidity1 = 0.55 # TODO Read humidity sensor here
+    humidity2 = 0.55 # TODO Read humidyty sensor here
+    
+    self.temperature = (temperature1 + temperature2) / 2
+    self.humidity = (humidity1 + humidity2) /2
+    
+    self.heater = Heater()
+    
+    self.compressor = Compressor()
+    
+    
+    self.temp_deque1 = deque([],60)
+    self.temp_deque2 = deque([],60)
+    
+    self.states_list = ['starting','fast_drying','slow_drying','standby','failure','random_noise']
+    
+    self.state = 0
+    
+    self.equilibrium_moisture_content = calc_EMC(self.temperature,self.humidity)
+    
+    self.EMC_fast_target = 0.0
+    self.EMC_fast_error = 2.0
+    self.EMC_slow_target = 0.0
+    self.EMC_slow_error = 1.0
+    
+    self.timer = QTimer(self)
+    self.timer.timeout.connect(self.state_random_noise)
+    self.timer.timeout.connect(self.dispatch_state(self.states_list[self.state]))
+    self.timer.start(100)
+    
+  def update_EMC_handle(self):
+    ''' This function simply recalculates EMC based on internal values, and then
+    emits an updated signal 
+    '''
+    self.equilibrium_moisture_content = calc_EMC(self.temperature, self.humidity)
+    
+    self.updated.emit()
+    
+  def state_random_noise(self):
+    ''' Function to apply random noise to read values, for testing purposes only
+    '''
+    temperature = self.temperature + random.uniform(-0.45, 0.55)
+    self.temp_deque1.append(temperature)
+    temperature = self.temperature + random.uniform(-0.60, 0.70)
+    self.temp_deque2.append(temperature)
+    self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
+    self.humidity    = self.humidity    + random.uniform(-0.01, 0.01) + random.uniform(-0.01, 0.01)
+    self.update_EMC_handle()
+    
+  def state_starting(self):
+    ''' A state function meant to fill the deques and avoid starting bumps '''
+    if len(self.temp_deque1) == 60:
+      self.check_starting()
+     
+    
+  def check_starting(self):
+    self.state = 1
+    self.compressor.inactive.connect(self.check_fast_drying)
+    self.heater.half_heating = False
+    self.heater.set_min_max(30,60)
+      
+  def state_fast_drying(self):
+    ''' While fast drying, heat as much up to 60 C and keep EMC at target plus or minus 2% 
+    The compressor kicks in if the EMC becomes too high, and stops if it becomes too low'''
+    
+    self.heater.update_heating(self.temperature)
+        
+    # Validate compressor status relative to EMC
+    if self.equilibrium_moisture_content - self.EMC_fast_error > self.EMC_fast_target:
+      self.compressor.start_compressor()
+    elif self.equilibrium_moisture_content + self.EMC_fast_error < self.EMC_fast_target:
+      self.compressor.stop_compressor()
+      
+  def check_fast_drying(self):
+    ''' If the compressor becomes inactive while fast drying, we are ready for slow drying '''
+    self.state = 2
+    # Change the connection with the disconnect signal
+    self.compressor.inactive.disconnect(self.check_fast_drying)
+    self.compressor.inactive.connect(self.check_slow_drying)
+    # Make sure to set only one heater before slow drying
+    self.heater.half_heating = True
+    self.heater.set_min_max(30,40)
+    self.compressor.start_compressor()
+      
+  def state_slow_drying(self):
+    ''' While slow drying, heat with only 1 element up to 40 C and drops EMC at target minus 1%, then waits
+    until checking for a restart'''
+    self.heater.update_heating(self.temperature)
+    
+    if self.equilibrium_moisture_content + self.EMC_slow_error < self.EMC_slow_target:
+      self.compressor.stop_compressor()
+    
+  def check_slow_drying(self):
+    ''' When the compressor becomes inactive while slow drying, check if it needs to be started again.
+    If it doesn't need to start, the wood is dry. '''
+    if self.equilibrium_moisture_content - self.EMC_slow_error / 2 > self.EMC_slow_target:
+      self.compressor.start_compressor()
+    else:
+      self.state = 3
+      self.compressor.inactive.disconnect(self.check_slow_drying)
+      self.set_heaters(False, False)
+   
+  def state_standby(self):
+    pass
+   
+  def set_EMC_fast_target(self, fast_target):
+    self.EMC_fast_target = fast_target
+    
+  def set_EMC_slow_target(self, slow_target):
+    self.EMC_slow_target = slow_target
+
+    
+  def dispatch_state(self, value):
+    ''' Return the method name based on the state '''
+    method_name = 'state_' + str(value)
+    return getattr(self, method_name)
