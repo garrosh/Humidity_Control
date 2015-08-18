@@ -21,6 +21,9 @@ class Form(QMainWindow):
     super(Form, self).__init__(parent)
     
     self.control = Controller()
+    self.control.updated.connect(self.update_form_handle)
+    self.control.compressor.updated.connect(self.update_water_icon)
+    self.control.heater.updated.connect(self.update_fire_icons)
     
     fibre_saturation_Label = QLabel("Fiber Saturation Ratio (%) (from tables)")
     self.fibre_saturation_spinbox = QDoubleSpinBox()
@@ -28,6 +31,7 @@ class Form(QMainWindow):
     self.fibre_saturation_spinbox.setRange(0, 100)
     self.fibre_saturation_spinbox.setSingleStep(0.1)
     self.fibre_saturation_spinbox.setValue(18)
+    self.fibre_saturation_spinbox.valueChanged.connect(self.control.update_EMC_fast_target)
     
     temperature_Label = QLabel("Current temperature measurement")
     self.temperature_value_label = QLabel("{0}".format(self.control.temperature))
@@ -42,6 +46,7 @@ class Form(QMainWindow):
     self.final_saturation_spinbox.setRange(0, 100)
     self.final_saturation_spinbox.setSingleStep(0.1)
     self.final_saturation_spinbox.setValue(6)
+    self.final_saturation_spinbox.valueChanged.connect(self.control.update_EMC_slow_target)
     
     emc_Label = QLabel("Equilibrium Moisture Content")
     self.emc_value_label = QLabel("{0}".format(self.control.equilibrium_moisture_content))
@@ -71,13 +76,15 @@ class Form(QMainWindow):
     mainLayout.addWidget(self.temp_deque_len_label,     4 , 1)
     mainLayout.addWidget(self.dummy_label,              5 , 1)
     
-    self.fire_icon = QPixmap("burn.png")
+    self.fire_icon   = QPixmap("burn.png")
+    self.red_icon    = QPixmap("circle_red.png")
+    self.green_icon  = QPixmap("circle_green.png")
     self.fire_label1 = QLabel()
     self.fire_label2 = QLabel()
     self.fire_label1.setPixmap(self.fire_icon)
     self.fire_label2.setPixmap(self.fire_icon)
     
-    self.water_icon = QPixmap("water.png")
+    self.water_icon  = QPixmap("water.png")
     self.water_label = QLabel()
     self.water_label.setPixmap(self.water_icon)
     
@@ -97,10 +104,10 @@ class Form(QMainWindow):
     self.setWindowTitle("Humidity Control V1.0")
     self.setStatusBar(self.statusBar)
     
-    
+    self.control.compressor.updated.emit()
+    self.control.heater.updated.emit()
 
-    self.control.updated.connect(self.update_form_handle)
-    self.control.compressor.updated.connect(self.update_water_icon)
+    
 
 
   def update_form_handle(self):
@@ -112,21 +119,23 @@ class Form(QMainWindow):
     self.dummy_label.setNum(self.control.state)
     self.statusBar.showMessage("{0} - {1} - {2}".format(self.control.state,self.control.states_list[self.control.state],len(self.control.temp_deque1)))
     
-  def update_water_icon(self, status):
-    if status:
+  def update_water_icon(self):
+    if self.control.compressor.compressor_state:
       self.water_label.setPixmap(self.water_icon)
+    elif self.control.compressor.ready_state:
+      self.water_label.setPixmap(self.green_icon)
     else:
-      self.water_label.clear()
+      self.water_label.setPixmap(self.red_icon)
       
-  def update_fire_icons(self, status1, status2):
-    if status1:
+  def update_fire_icons(self):
+    if self.control.heater.heater1:
       self.fire_label1.setPixmap(self.fire_icon)
     else:
-      self.fire_label1.clear()
-    if status2:
+      self.fire_label1.setPixmap(self.red_icon)
+    if self.control.heater.heater2:
       self.fire_label2.setPixmap(self.fire_icon)
     else:
-      self.fire_label2.clear()
+      self.fire_label2.setPixmap(self.red_icon)
 
 
 if __name__ == '__main__':

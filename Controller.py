@@ -27,8 +27,8 @@ class Controller(QObject):
   def __init__(self, parent=None):
     super(Controller, self).__init__(parent)
     
-    temperature1 = 20 # TODO Read temperature sensor here
-    temperature2 = 20 # TODO Read temperature sensor here
+    temperature1 = 141 # TODO Read temperature sensor here
+    temperature2 = 141 # TODO Read temperature sensor here
     humidity1 = 0.55 # TODO Read humidity sensor here
     humidity2 = 0.55 # TODO Read humidyty sensor here
     
@@ -71,22 +71,28 @@ class Controller(QObject):
     
     self.updated.emit()
     
+  def update_EMC_fast_target(self, new_target):
+    self.EMC_fast_target = new_target
+    
+  def update_EMC_slow_target(self, new_target):
+    self.EMC_slow_target = new_target
+    
   def state_random_noise(self):
     ''' Function to apply random noise to read values, for testing purposes only
     '''
     # Compute additional heat
     if self.heater.get_heater1():
-      more_heat = 1
+      more_heat = 50
     else:
       more_heat = 0.0
       
     if self.heater.get_heater2():
-      more_heat = more_heat + 1
+      more_heat = more_heat + 50
     
     
-    temperature = self.temperature + random.uniform(-0.60, 0.50) + more_heat
+    temperature = self.temperature + random.uniform(-20, 0.00) + more_heat
     self.temp_deque1.append(temperature)
-    temperature = self.temperature + random.uniform(-0.80, 0.70) + more_heat
+    temperature = self.temperature + random.uniform(-40, 0.00) + more_heat
     self.temp_deque2.append(temperature)
     self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
     self.humidity    = self.humidity    + random.uniform(-0.01, 0.02) * self.reservoir - self.compressor.get_state() * 0.01
@@ -152,9 +158,16 @@ class Controller(QObject):
     else:
       self.state = 3
       self.compressor.inactive.disconnect(self.check_slow_drying)
-      self.set_heaters(False, False)
+      self.compressor.inactive.connect(self.check_standby)
+      self.timer.timeout.disconnect(self.state_slow_drying)
+      self.timer.timeout.connect(self.state_standby)
+      self.heater.half_heating = False
+      self.heater.set_heaters(False, False)
    
   def state_standby(self):
+    pass
+    
+  def check_standby(self):
     pass
    
   def set_EMC_fast_target(self, fast_target):

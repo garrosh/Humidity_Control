@@ -4,8 +4,7 @@ class Compressor(QObject):
   ''' A class to hold the compressor and it's associated variables
   '''
   
-  updated = pyqtSignal(bool)
-  ready = pyqtSignal()
+  updated = pyqtSignal()
   inactive = pyqtSignal()
   
   
@@ -24,12 +23,9 @@ class Compressor(QObject):
     self.compressor_state = False # TODO link this variable with an I/O pin
     
     self.waiting_for_start = False
-    
-    self.updated.emit(self.compressor_state)
  
   def toggle_compressor(self):
-    self.set_compressor(self.compressor_state)
-    self.updated.emit(self.compressor_state)
+    self.set_compressor(~self.compressor_state)
     
   def set_compressor(self, state):
     if state:
@@ -45,7 +41,7 @@ class Compressor(QObject):
         self.timer.timeout.disconnect()
         self.timer.start(3600) # Start an hour timer to prevent overheating
         self.timer.timeout.connect(self.react_to_overheat)
-        self.updated.emit(self.compressor_state)
+        self.updated.emit()
       else: # Otherwise, mark for a start ASAP
         self.waiting_for_start = True
       
@@ -60,7 +56,7 @@ class Compressor(QObject):
       self.timer.timeout.connect(self.set_ready)
       self.ready_state = False
       self.compressor_state = False
-      self.updated.emit(self.compressor_state)
+      self.updated.emit()
     elif self.waiting_for_start: # If trying to stop the compressor while waiting_for_start, remove the flag
       self.waiting_for_start = False
     
@@ -74,7 +70,7 @@ class Compressor(QObject):
       self.timer.timeout.disconnect()
       self.timer.start(3600)
       self.timer.timeout.connect(self.become_inactive)
-    self.ready.emit()
+    self.updated.emit()
   
   def become_inactive(self):
     self.inactive.emit()
