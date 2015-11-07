@@ -27,8 +27,8 @@ class Controller(QObject):
   def __init__(self, parent=None):
     super(Controller, self).__init__(parent)
     
-    temperature1 = 141 # TODO Read temperature sensor here
-    temperature2 = 141 # TODO Read temperature sensor here
+    temperature1 = 20 # TODO Read temperature sensor here
+    temperature2 = 20 # TODO Read temperature sensor here
     humidity1 = 0.55 # TODO Read humidity sensor here
     humidity2 = 0.55 # TODO Read humidyty sensor here
     
@@ -82,17 +82,17 @@ class Controller(QObject):
     '''
     # Compute additional heat
     if self.heater.get_heater1():
-      more_heat = 50
+      more_heat = 5
     else:
       more_heat = 0.0
       
     if self.heater.get_heater2():
-      more_heat = more_heat + 50
+      more_heat = more_heat + 5
     
     
-    temperature = self.temperature + random.uniform(-20, 0.00) + more_heat
+    temperature = self.temperature + random.uniform(-2, 0.00) + more_heat
     self.temp_deque1.append(temperature)
-    temperature = self.temperature + random.uniform(-40, 0.00) + more_heat
+    temperature = self.temperature + random.uniform(-4, 0.00) + more_heat
     self.temp_deque2.append(temperature)
     self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
     self.humidity    = self.humidity    + random.uniform(-0.01, 0.02) * self.reservoir - self.compressor.get_state() * 0.01

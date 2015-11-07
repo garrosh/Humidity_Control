@@ -16,6 +16,8 @@ class Heater(QObject):
     self.half_heating = False
     self.half_heating_lock = False
     self.timer = QTimer(self)
+    self.timer.setInterval(6000)
+    self.timer.timeout.connect(self.toggle_heaters)
     
   def set_min_max(self, minimum, maximum):
     self.minimum = minimum
@@ -30,7 +32,7 @@ class Heater(QObject):
     elif self.minimum > temperature:
       if self.half_heating:
         if ~self.half_heating_lock:
-          self.timer.start(6000)
+          self.timer.start()
           self.half_heating_lock = True
           self.set_heaters(True, False)
           self.updated.emit()
