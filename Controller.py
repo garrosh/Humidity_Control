@@ -39,6 +39,7 @@ class Controller(QObject):
     
     self.compressor = Compressor()
     
+    self.compressor.is_active.connect(self.heater.set_heating_safe)
     
     self.temp_deque1 = deque([],180)
     self.temp_deque2 = deque([],180)
@@ -111,7 +112,7 @@ class Controller(QObject):
     
   def check_starting(self):
     self.state = 1
-    self.compressor.inactive.connect(self.check_fast_drying)
+    self.compressor.is_idle.connect(self.check_fast_drying)
     self.heater.half_heating = False
     self.heater.set_min_max(86,140)
     self.timer.timeout.disconnect(self.state_starting)
@@ -133,8 +134,8 @@ class Controller(QObject):
     ''' If the compressor becomes inactive while fast drying, we are ready for slow drying '''
     self.state = 2
     # Change the connection with the disconnect signal
-    self.compressor.inactive.disconnect(self.check_fast_drying)
-    self.compressor.inactive.connect(self.check_slow_drying)
+    self.compressor.is_idle.disconnect(self.check_fast_drying)
+    self.compressor.is_idle.connect(self.check_slow_drying)
     self.timer.timeout.disconnect(self.state_fast_drying)
     self.timer.timeout.connect(self.state_slow_drying)
     # Make sure to set only one heater before slow drying
@@ -157,8 +158,8 @@ class Controller(QObject):
       self.compressor.start_compressor()
     else:
       self.state = 3
-      self.compressor.inactive.disconnect(self.check_slow_drying)
-      self.compressor.inactive.connect(self.check_standby)
+      self.compressor.is_idle.disconnect(self.check_slow_drying)
+      self.compressor.is_idle.connect(self.check_standby)
       self.timer.timeout.disconnect(self.state_slow_drying)
       self.timer.timeout.connect(self.state_standby)
       self.heater.half_heating = False

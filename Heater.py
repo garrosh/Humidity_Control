@@ -11,6 +11,7 @@ class Heater(QObject):
     
     self.heater1 = False
     self.heater2 = False
+    self.heating_safe = False
     self.minimum = 0
     self.maximum = 0
     self.half_heating = False
@@ -24,31 +25,42 @@ class Heater(QObject):
     self.maximum = maximum
     
   def update_heating(self,temperature):
-    if self.maximum < temperature:
-      self.set_heaters(False, False)
-      if self.half_heating:
-        self.timer.stop()
-      self.updated.emit()
-    elif self.minimum > temperature:
-      if self.half_heating:
-        if ~self.half_heating_lock:
-          self.timer.start()
-          self.half_heating_lock = True
-          self.set_heaters(True, False)
-          self.updated.emit()
-      else:
-        self.set_heaters(True,True)
-        self.updated.emit()
+    if self.heating_safe:
+      if self.maximum < temperature:
+        self.set_heaters(False, False)
+        if self.half_heating:
+          self.timer.stop()
+      elif self.minimum > temperature:
+        if self.half_heating:
+          if ~self.half_heating_lock:
+            self.timer.start()
+            self.half_heating_lock = True
+            self.set_heaters(True, False)
+        else:
+          self.set_heaters(True,True)
+    else:
+      self.set_heaters(False,False)
       
   
   def toggle_heaters(self):
-    self.set_heaters(~self.heater1, ~self.heater2)
+    if self.heating_safe:
+      self.set_heaters(~self.heater1, ~self.heater2)
+    else:
+      self.set_heaters(False,False)
+    
   
   def set_heaters(self, state_heater1, state_heater2):
-    self.heater1 = state_heater1
-    self.heater2 = state_heater2
+    if self.heating_safe:
+      self.heater1 = state_heater1
+      self.heater2 = state_heater2
+    else:
+      self.heater1 = False
+      self.heater2 = False
     self.updated.emit()
     
+  def set_heating_safe(self, compressor_active):
+    self.heating_safe = ~compressor_active
+  
   def get_heater1(self):
     return self.heater1
     
