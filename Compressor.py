@@ -72,7 +72,7 @@ class Compressor(QObject):
       self.ready_state = False
       
       self.compressor_state = False
-      self.is_active.emit(self.compressor_state)
+      self.is_active.emit(self.get_state())
       self.updated.emit()
     
   def become_active(self):
@@ -82,11 +82,14 @@ class Compressor(QObject):
       self.timer.start(6000) # Start a one hour timer to time overheat
       self.timer.timeout.connect(self.react_to_overheat)
       self.compressor_state = True
-      self.is_active.emit(self.compressor_state)
+      self.is_active.emit(self.get_state())
       self.updated.emit()
     
   def get_state(self):
-    return self.compressor_state
+    if self.compressor_state:
+      return 1
+    else:
+      return 0
     
   def react_to_overheat(self): 
     '''TODO: Add possible overheating behavior here. For now, simply stop and restart

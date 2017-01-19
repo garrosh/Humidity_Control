@@ -57,9 +57,14 @@ class Heater(QObject):
       self.heater1 = False
       self.heater2 = False
     self.updated.emit()
-    
+  
+  
+  @pyqtSlot(bool)
   def set_heating_safe(self, compressor_active):
-    self.heating_safe = ~compressor_active
+    if compressor_active:
+      self.heating_safe = False
+    else:
+      self.heating_safe = True
   
   def get_heater1(self):
     return self.heater1
