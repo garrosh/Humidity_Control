@@ -27,13 +27,17 @@ class Controller(QObject):
   def __init__(self, parent=None):
     super(Controller, self).__init__(parent)
     
-    temperature1 = 20 # TODO Read temperature sensor here
-    temperature2 = 20 # TODO Read temperature sensor here
-    humidity1 = 0.55 # TODO Read humidity sensor here
-    humidity2 = 0.55 # TODO Read humidyty sensor here
     
-    self.temperature = (temperature1 + temperature2) / 2
-    self.humidity = (humidity1 + humidity2) /2
+    # temperature1 = 20 # TODO Read temperature sensor here
+    # temperature2 = 20 # TODO Read temperature sensor here
+    # humidity1 = 0.55 # TODO Read humidity sensor here
+    # humidity2 = 0.55 # TODO Read humidyty sensor here
+    
+    # self.temperature = (temperature1 + temperature2) / 2
+    # self.humidity = (humidity1 + humidity2) /2
+    
+    self.temperature = 20
+    self.humidity = 0.55
     
     self.heater = Heater()
     
@@ -41,8 +45,10 @@ class Controller(QObject):
     
     self.compressor.is_active.connect(self.heater.set_heating_safe)
     
-    self.temp_deque1 = deque([],180)
-    self.temp_deque2 = deque([],180)
+    # self.temp_deque1 = deque([],180)
+    # self.temp_deque2 = deque([],180)
+    
+    self.temp_deque = deque([],180)
     
     self.states_list = ['starting','fast_drying','slow_drying','standby','failure']
     
@@ -91,11 +97,16 @@ class Controller(QObject):
       more_heat = more_heat + 5
     
     
+    # temperature = self.temperature + random.uniform(-2, 0.00) + more_heat
+    # self.temp_deque1.append(temperature)
+    # temperature = self.temperature + random.uniform(-4, 0.00) + more_heat
+    # self.temp_deque2.append(temperature)
+    # self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
+    
+    
     temperature = self.temperature + random.uniform(-2, 0.00) + more_heat
-    self.temp_deque1.append(temperature)
-    temperature = self.temperature + random.uniform(-4, 0.00) + more_heat
-    self.temp_deque2.append(temperature)
-    self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
+    self.temp_deque.append(temperature)
+    self.temperature = mean(self.temp_deque)
     self.humidity    = self.humidity    + random.uniform(-0.01, 0.02) * self.reservoir - self.compressor.get_state() * 0.01
     self.reservoir = self.reservoir * 0.999
     if self.humidity > 1:
