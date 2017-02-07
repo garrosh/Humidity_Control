@@ -6,6 +6,8 @@ from Compressor import Compressor
 from Heater import Heater
 import random
 
+import RPi.GPIO as GPIO
+
 class Controller(QObject):
   ''' Humidity controller class
   
@@ -26,6 +28,12 @@ class Controller(QObject):
 
   def __init__(self, parent=None):
     super(Controller, self).__init__(parent)
+
+    GPIO.setmode(GPIO.BOARD)
+
+    # Temperature1 pin #: 17
+    # Temperature2 pin #: 27
+    # Compressor   pin #: 22
     
     
     # temperature1 = 20 # TODO Read temperature sensor here
@@ -117,7 +125,7 @@ class Controller(QObject):
     
   def state_starting(self):
     ''' A state function meant to fill the deques and avoid starting bumps '''
-    if len(self.temp_deque1) == 180:
+    if len(self.temp_deque) == 180:
       self.check_starting()
      
     

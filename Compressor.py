@@ -1,4 +1,5 @@
 from PyQt5.QtCore import *
+import RPi.GPIO as GPIO
 
 class Compressor(QObject):
   ''' A class to hold the compressor and it's associated variables
@@ -11,6 +12,8 @@ class Compressor(QObject):
   
   def __init__(self, parent=None):
     super(Compressor, self).__init__(parent)
+
+    GPIO.setup(15, GPIO.OUT, initial=GPIO.LOW)
     
     self.timer = QTimer(self)
     # Start a timer for 3 minutes, to make sure the compressor is ready to compress before starting it
@@ -31,8 +34,10 @@ class Compressor(QObject):
   def set_compressor(self, state):
     if state:
       self.start_compressor(self)
+      GPIO.output(15, GPIO.LOW)
     else:
       self.stop_compressor(self)
+      GPIO.output(15, GPIO.HIGH)
     
   def start_compressor(self):
     if ~self.compressor_state:

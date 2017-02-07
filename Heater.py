@@ -1,4 +1,5 @@
 from PyQt5.QtCore import *
+import RPi.GPIO as GPIO
 
 class Heater(QObject):
   ''' A class to hold the heater and it's associated variables
@@ -8,6 +9,9 @@ class Heater(QObject):
   
   def __init__(self, parent=None):
     super(Heater, self).__init__(parent)
+
+    GPIO.setup(11, GPIO.OUT, initial=GPIO.LOW)
+    GPIO.setup(13, GPIO.OUT, initial=GPIO.LOW)
     
     self.heater1 = False
     self.heater2 = False
@@ -51,8 +55,18 @@ class Heater(QObject):
   
   def set_heaters(self, state_heater1, state_heater2):
     if self.heating_safe:
-      self.heater1 = state_heater1
-      self.heater2 = state_heater2
+      if state_heater1:
+        self.heater1 = True
+        GPIO.output(11, GPIO.HIGH)
+      else:
+        self.heater1 = False
+        GPIO.output(11, GPIO.LOW)
+      if state_heater2:
+        self.heater2 = True
+        GPIO.output(13, GPIO.HIGH)
+      else:
+        self.heater2 = False
+        GPIO.output(13, GPIO.LOW)
     else:
       self.heater1 = False
       self.heater2 = False
