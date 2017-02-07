@@ -7,6 +7,9 @@ from Heater import Heater
 import random
 
 import RPi.GPIO as GPIO
+import smbus
+import time
+
 
 class Controller(QObject):
   ''' Humidity controller class
@@ -30,6 +33,10 @@ class Controller(QObject):
     super(Controller, self).__init__(parent)
 
     GPIO.setmode(GPIO.BOARD)
+    self.bus = smbus.SMBus(1)
+    self.address = 0x27
+
+    self.complete_sensor_read()
 
     # Temperature1 pin #: 17
     # Temperature2 pin #: 27
@@ -73,10 +80,34 @@ class Controller(QObject):
     self.timer.setSingleShot(False)
     self.timer.timeout.connect(self.dispatch_state(self.states_list[self.state]))
     self.timer.timeout.connect(self.state_random_noise)
+    self.timer.timeout.connect(self.complete_sensor_read)
     
-    self.timer.start(100)
+    self.timer.start(1000)
     
     self.reservoir = 1.0
+
+  def request_sensor_read(self):
+    self.bus.write_byte(self.address, 0)
+
+  def process_sensor_read(self):
+    buf = self.bus.read_i2c_block_data(self.address,0,4)
+    print(repr(buf[0]).rjust(4),repr(buf[1]).rjust(4),repr(buf[2]).rjust(4),repr(buf[3]).rjust(4))
+    status = (buf[0] & 0xc0) >> 6
+    humidity = (((buf[0] & 0x3f) *256) + buf[1]) / 0x3fff * 100
+    temperature = (buf[2] *256 + buf[3]) / 0xfffc * 165 - 40
+    print('buf[3] + buf[2]: {}'.format(buf[3] + buf[2]))
+    print('(buf[2] << 8: {} + buf[3]: {} / 0x3fff: {} / * 165: {}'.format((buf[2] << 8),
+                                                                    (buf[2] << 8 + buf[3]),
+                                                                    ((buf[2] << 8 + buf[3]) / 0xfffc),
+                                                                    ((buf[2] << 8 + buf[3]) / 0xfffc * 165)))
+    print('Status: {} Humidity: {} Temperature: {}'.format(status, humidity, temperature))
+
+
+
+  def complete_sensor_read(self):
+    self.request_sensor_read()
+    time.sleep(0.0)
+    self.process_sensor_read()
     
   def update_EMC_handle(self):
     ''' This function simply recalculates EMC based on internal values, and then
