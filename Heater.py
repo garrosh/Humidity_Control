@@ -15,9 +15,9 @@ class Heater(QObject):
     
     self.heater1 = False
     self.heater2 = False
-    self.heating_safe = False
-    self.minimum = 0
-    self.maximum = 0
+    self.heating_safe = True
+    self.minimum = 30
+    self.maximum = 40
     self.half_heating = False
     self.half_heating_lock = False
     self.timer = QTimer(self)

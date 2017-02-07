@@ -2,7 +2,7 @@
 
 
 
-def calc_EMC(temp, h):
+def calc_EMC(temp_celcius, h):
     """ This function calculates the Equilibrium Moisture Content
     based on the Hailwood-Horrobin equation.
 
@@ -14,6 +14,9 @@ def calc_EMC(temp, h):
 
     ref: https://en.wikipedia.org/wiki/Equilibrium_moisture_content
     """
+
+    temp = temp_celcius * 9 / 5 + 32
+    
     temp_squared = temp * temp
     
     W = 330 + .452*temp + 0.00415*temp_squared

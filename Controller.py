@@ -36,7 +36,7 @@ class Controller(QObject):
     self.bus = smbus.SMBus(1)
     self.address = 0x27
 
-    self.complete_sensor_read()
+    
 
     # Temperature1 pin #: 17
     # Temperature2 pin #: 27
@@ -50,9 +50,6 @@ class Controller(QObject):
     
     # self.temperature = (temperature1 + temperature2) / 2
     # self.humidity = (humidity1 + humidity2) /2
-    
-    self.temperature = 20
-    self.humidity = 0.55
     
     self.heater = Heater()
     
@@ -68,7 +65,8 @@ class Controller(QObject):
     self.states_list = ['starting','fast_drying','slow_drying','standby','failure']
     
     self.state = 0
-    
+
+    self.complete_sensor_read()
     self.equilibrium_moisture_content = calc_EMC(self.temperature,self.humidity)
     
     self.EMC_fast_target = 18.0
@@ -79,7 +77,6 @@ class Controller(QObject):
     self.timer = QTimer(self)
     self.timer.setSingleShot(False)
     self.timer.timeout.connect(self.dispatch_state(self.states_list[self.state]))
-    self.timer.timeout.connect(self.state_random_noise)
     self.timer.timeout.connect(self.complete_sensor_read)
     
     self.timer.start(1000)
@@ -93,15 +90,11 @@ class Controller(QObject):
     buf = self.bus.read_i2c_block_data(self.address,0,4)
     print(repr(buf[0]).rjust(4),repr(buf[1]).rjust(4),repr(buf[2]).rjust(4),repr(buf[3]).rjust(4))
     status = (buf[0] & 0xc0) >> 6
-    humidity = (((buf[0] & 0x3f) *256) + buf[1]) / 0x3fff * 100
+    self.humidity = (((buf[0] & 0x3f) *256) + buf[1]) / 0x3fff * 100
     temperature = (buf[2] *256 + buf[3]) / 0xfffc * 165 - 40
-    print('buf[3] + buf[2]: {}'.format(buf[3] + buf[2]))
-    print('(buf[2] << 8: {} + buf[3]: {} / 0x3fff: {} / * 165: {}'.format((buf[2] << 8),
-                                                                    (buf[2] << 8 + buf[3]),
-                                                                    ((buf[2] << 8 + buf[3]) / 0xfffc),
-                                                                    ((buf[2] << 8 + buf[3]) / 0xfffc * 165)))
-    print('Status: {} Humidity: {} Temperature: {}'.format(status, humidity, temperature))
-
+    self.temp_deque.append(temperature)
+    self.temperature = mean(self.temp_deque)
+    self.update_EMC_handle()
 
 
   def complete_sensor_read(self):
@@ -164,7 +157,7 @@ class Controller(QObject):
     self.state = 1
     self.compressor.is_idle.connect(self.check_fast_drying)
     self.heater.half_heating = False
-    self.heater.set_min_max(86,140)
+    self.heater.set_min_max(30,40)
     self.timer.timeout.disconnect(self.state_starting)
     self.timer.timeout.connect(self.state_fast_drying)
       
@@ -190,7 +183,7 @@ class Controller(QObject):
     self.timer.timeout.connect(self.state_slow_drying)
     # Make sure to set only one heater before slow drying
     self.heater.half_heating = True
-    self.heater.set_min_max(86,104)
+    self.heater.set_min_max(30,40)
     self.compressor.start_compressor()
       
   def state_slow_drying(self):
