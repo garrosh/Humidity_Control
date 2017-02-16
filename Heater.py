@@ -25,7 +25,13 @@ class Heater(QObject):
     self.timer.timeout.connect(self.toggle_heaters)
     
   def set_min_max(self, minimum, maximum):
+    self.set_min(minimum)
+    self.set_max(maximum)
+    
+  def set_min(self, minimum):
     self.minimum = minimum
+    
+  def set_max(self, maximum):
     self.maximum = maximum
     
   def update_heating(self,temperature):

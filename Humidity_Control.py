@@ -51,6 +51,26 @@ class Form(QMainWindow):
     emc_Label = QLabel("Equilibrium Moisture Content")
     self.emc_value_label = QLabel("{0}".format(self.control.equilibrium_moisture_content))
     
+    minimum_temperature_Label = QLabel("Minimum operating temperature")
+    self.minimum_temperature_spinbox = QDoubleSpinBox()
+    self.minimum_temperature_spinbox.setDecimals(1)
+    self.minimum_temperature_spinbox.setRange(15,40)
+    self.minimum_temperature_spinbox.setSingleStep(0.1)
+    self.minimum_temperature_spinbox.setValue(25)
+    self.minimum_temperature_spinbox.valueChanged.connect(self.control.heater.set_min)
+    
+    maximum_temperature_Label = QLabel("Maximum operating temperature")
+    self.maximum_temperature_spinbox = QDoubleSpinBox()
+    self.maximum_temperature_spinbox.setDecimals(1)
+    self.maximum_temperature_spinbox.setRange(15,40)
+    self.maximum_temperature_spinbox.setSingleStep(0.1)
+    self.maximum_temperature_spinbox.setValue(30)
+    self.maximum_temperature_spinbox.valueChanged.connect(self.control.heater.set_max)
+    
+    self.reset_button = QPushButton("Start new cycle")
+    self.reset_button.clicked.connect(self.control.state_starting)
+    
+    
     self.temp_deque_len_label = QLabel()
     self.temp_deque_len_label.setNum(len(self.control.temp_deque))
     self.dummy_label = QLabel()
@@ -60,7 +80,7 @@ class Form(QMainWindow):
     
     mainLayout = QGridLayout()
     
-    
+    '''
     mainLayout.addWidget(fibre_saturation_Label,        0 , 0)
     mainLayout.addWidget(self.fibre_saturation_spinbox, 1 , 0)
     mainLayout.addWidget(temperature_Label,             2 , 0)
@@ -75,6 +95,22 @@ class Form(QMainWindow):
     mainLayout.addWidget(self.emc_value_label,          3 , 1)
     mainLayout.addWidget(self.temp_deque_len_label,     4 , 1)
     mainLayout.addWidget(self.dummy_label,              5 , 1)
+    '''
+    mainLayout.addWidget(fibre_saturation_Label,           0 , 0)
+    mainLayout.addWidget(self.fibre_saturation_spinbox,    1 , 0)
+    mainLayout.addWidget(final_saturation_Label,           2 , 0)
+    mainLayout.addWidget(self.final_saturation_spinbox,    3 , 0)
+    
+    mainLayout.addWidget(humidity_Label,                   0 , 1)
+    mainLayout.addWidget(self.humidity_value_label,        1 , 1)
+    mainLayout.addWidget(temperature_Label,                2 , 1)
+    mainLayout.addWidget(self.temperature_value_label,     3 , 1)
+    mainLayout.addWidget(self.reset_button                 4 , 1)
+    
+    mainLayout.addWidget(minimum_temperature_Label,        0 , 2)
+    mainLayout.addWidget(self.minimum_temperature_spinbox, 1 , 2) 
+    mainLayout.addWidget(maximum_temperature_Label,        2 , 2)
+    mainLayout.addWidget(self.maximum_temperature_spinbox, 3 , 2)
     
     self.fire_icon   = QPixmap("burn.png")
     self.red_icon    = QPixmap("circle_red.png")
