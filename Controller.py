@@ -33,6 +33,7 @@ class Controller(QObject):
     super(Controller, self).__init__(parent)
 
     GPIO.setmode(GPIO.BOARD)
+    GPIO.setwarnings(False)
     self.bus = smbus.SMBus(1)
     self.address = 0x27
 
@@ -78,6 +79,7 @@ class Controller(QObject):
     self.timer.setSingleShot(False)
     self.timer.timeout.connect(self.dispatch_state(self.states_list[self.state]))
     self.timer.timeout.connect(self.complete_sensor_read)
+    self.timer.timeout.connect(self.compressor.counter_tick)
     
     self.timer.start(100)
     
@@ -88,7 +90,7 @@ class Controller(QObject):
 
   def process_sensor_read(self):
     buf = self.bus.read_i2c_block_data(self.address,0,4)
-    print(repr(buf[0]).rjust(4),repr(buf[1]).rjust(4),repr(buf[2]).rjust(4),repr(buf[3]).rjust(4))
+    '''print(repr(buf[0]).rjust(4),repr(buf[1]).rjust(4),repr(buf[2]).rjust(4),repr(buf[3]).rjust(4))'''
     status = (buf[0] & 0xc0) >> 6
     self.humidity = (((buf[0] & 0x3f) *256) + buf[1]) / 0x3fff * 100
     temperature = (buf[2] *256 + buf[3]) / 0xfffc * 165 - 40
@@ -149,19 +151,25 @@ class Controller(QObject):
     
   def state_starting(self):
     ''' A state function meant to fill the deques and avoid starting bumps '''
-    self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
-    self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
     self.state = 0
     if len(self.temp_deque) == 180:
       self.check_starting()
      
     
   def check_starting(self):
-    self.compressor.is_idle.connect(self.check_fast_drying)
     self.heater.half_heating = False
-    self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
+    try:
+      self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
+      self.timer.timeout.connect(self.state_fast_drying)
+    except:
+      timer_disonnect = False
+    try:
+      self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
+      self.compressor.is_idle.connect(self.state_fast_drying)
+    except:
+      compressor_disconnect = False
+      
     self.state = 1
-    self.timer.timeout.connect(self.state_fast_drying)
       
   def state_fast_drying(self):
     ''' While fast drying, heat as much up to 60 C and keep EMC at target plus or minus 2% 
@@ -179,11 +187,11 @@ class Controller(QObject):
     ''' If the compressor becomes inactive while fast drying, we are ready for slow drying '''
     
     # Change the connection with the disconnect signal
-    self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
-    self.compressor.is_idle.connect(self.check_slow_drying)
     self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
+    self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
     self.state = 2
     self.timer.timeout.connect(self.state_slow_drying)
+    self.compressor.is_idle.connect(self.check_slow_drying)
     # Make sure to set only one heater before slow drying
     self.heater.half_heating = True
     self.compressor.start_compressor()
@@ -203,11 +211,11 @@ class Controller(QObject):
     if self.equilibrium_moisture_content - self.EMC_slow_error / 2 > self.EMC_slow_target:
       self.compressor.start_compressor()
     else:
-      self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
-      self.compressor.is_idle.connect(self.check_standby)
       self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
-      self.timer.timeout.connect(self.state_standby)
+      self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
       self.state = 3
+      self.compressor.is_idle.connect(self.check_standby)
+      self.timer.timeout.connect(self.state_standby)
       self.heater.half_heating = False
       self.heater.set_heaters(False, False)
    
