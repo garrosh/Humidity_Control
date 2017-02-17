@@ -83,7 +83,6 @@ class Controller(QObject):
     
     self.timer.start(100)
     
-    self.reservoir = 1.0
 
   def request_sensor_read(self):
     self.bus.write_byte(self.address, 0)
@@ -118,36 +117,6 @@ class Controller(QObject):
   def update_EMC_slow_target(self, new_target):
     self.EMC_slow_target = new_target
     
-  def state_random_noise(self):
-    ''' Function to apply random noise to read values, for testing purposes only
-    '''
-    # Compute additional heat
-    if self.heater.get_heater1():
-      more_heat = 5
-    else:
-      more_heat = 0.0
-      
-    if self.heater.get_heater2():
-      more_heat = more_heat + 5
-    
-    
-    # temperature = self.temperature + random.uniform(-2, 0.00) + more_heat
-    # self.temp_deque1.append(temperature)
-    # temperature = self.temperature + random.uniform(-4, 0.00) + more_heat
-    # self.temp_deque2.append(temperature)
-    # self.temperature = (mean(self.temp_deque1) + mean(self.temp_deque2)) / 2
-    
-    
-    temperature = self.temperature + random.uniform(-2, 0.00) + more_heat
-    self.temp_deque.append(temperature)
-    self.temperature = mean(self.temp_deque)
-    self.humidity    = self.humidity    + random.uniform(-0.01, 0.02) * self.reservoir - self.compressor.get_state() * 0.01
-    self.reservoir = self.reservoir * 0.999
-    if self.humidity > 1:
-      self.humidity = 1
-    elif self.humidity < 0:
-      self.humidity = 0
-    self.update_EMC_handle()
     
   def state_starting(self):
     ''' A state function meant to fill the deques and avoid starting bumps '''
@@ -163,12 +132,6 @@ class Controller(QObject):
       self.timer.timeout.connect(self.state_fast_drying)
     except:
       timer_disonnect = False
-    try:
-      self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
-      self.compressor.is_idle.connect(self.state_fast_drying)
-    except:
-      compressor_disconnect = False
-      
     self.state = 1
       
   def state_fast_drying(self):
@@ -188,10 +151,8 @@ class Controller(QObject):
     
     # Change the connection with the disconnect signal
     self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
-    self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
     self.state = 2
     self.timer.timeout.connect(self.state_slow_drying)
-    self.compressor.is_idle.connect(self.check_slow_drying)
     # Make sure to set only one heater before slow drying
     self.heater.half_heating = True
     self.compressor.start_compressor()
@@ -212,9 +173,7 @@ class Controller(QObject):
       self.compressor.start_compressor()
     else:
       self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
-      self.compressor.is_idle.disconnect(self.dispatch_state(self.states_list[self.state]))
       self.state = 3
-      self.compressor.is_idle.connect(self.check_standby)
       self.timer.timeout.connect(self.state_standby)
       self.heater.half_heating = False
       self.heater.set_heaters(False, False)

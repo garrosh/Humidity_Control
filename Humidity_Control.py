@@ -128,7 +128,9 @@ class Form(QMainWindow):
     self.statusBar.addPermanentWidget(self.fire_label1)
     self.statusBar.addPermanentWidget(self.fire_label2)
     self.statusBar.addPermanentWidget(self.water_label)
-    self.statusBar.showMessage("{0} - {1} - {2}".format(self.control.state,self.control.states_list[self.control.state],len(self.control.temp_deque)))
+    self.statusBar.showMessage("{0} - {1} - {2}".format(self.control.state,
+                                                        self.control.states_list[self.control.state],
+                                                        self.control.compressor.timer_counter))
     
     
    
@@ -153,7 +155,9 @@ class Form(QMainWindow):
     self.emc_value_label.setNum(self.control.equilibrium_moisture_content)
     self.temp_deque_len_label.setNum(len(self.control.temp_deque))
     self.dummy_label.setNum(self.control.heater.heating_safe)
-    self.statusBar.showMessage("{0} - {1} - {2}".format(self.control.state,self.control.states_list[self.control.state],len(self.control.temp_deque)))
+    self.statusBar.showMessage("{0} - {1} - {2}".format(self.control.state,
+                                                        self.control.states_list[self.control.state],
+                                                        self.control.compressor.timer_counter))
     
   def update_water_icon(self):
     if self.control.compressor.compressor_state:
