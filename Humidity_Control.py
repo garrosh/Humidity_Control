@@ -105,7 +105,7 @@ class Form(QMainWindow):
     mainLayout.addWidget(self.humidity_value_label,        1 , 1)
     mainLayout.addWidget(temperature_Label,                2 , 1)
     mainLayout.addWidget(self.temperature_value_label,     3 , 1)
-    mainLayout.addWidget(self.reset_button                 4 , 1)
+    mainLayout.addWidget(self.reset_button,                4 , 1)
     
     mainLayout.addWidget(minimum_temperature_Label,        0 , 2)
     mainLayout.addWidget(self.minimum_temperature_spinbox, 1 , 2) 

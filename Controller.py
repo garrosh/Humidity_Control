@@ -79,7 +79,7 @@ class Controller(QObject):
     self.timer.timeout.connect(self.dispatch_state(self.states_list[self.state]))
     self.timer.timeout.connect(self.complete_sensor_read)
     
-    self.timer.start(1000)
+    self.timer.start(100)
     
     self.reservoir = 1.0
 
@@ -159,7 +159,6 @@ class Controller(QObject):
   def check_starting(self):
     self.compressor.is_idle.connect(self.check_fast_drying)
     self.heater.half_heating = False
-    self.heater.set_min_max(30,40)
     self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
     self.state = 1
     self.timer.timeout.connect(self.state_fast_drying)
@@ -187,7 +186,6 @@ class Controller(QObject):
     self.timer.timeout.connect(self.state_slow_drying)
     # Make sure to set only one heater before slow drying
     self.heater.half_heating = True
-    self.heater.set_min_max(30,40)
     self.compressor.start_compressor()
       
   def state_slow_drying(self):
