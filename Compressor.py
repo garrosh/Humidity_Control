@@ -29,6 +29,7 @@ class Compressor(QObject):
 
   def counter_tick(self):
     self.timer_counter = self.timer_counter + 1
+    print(self.timer_counter, self.idle_state)
     # If the compressor is idle, roll back the counter
     if self.idle_state:
       self.timer_counter = 0
