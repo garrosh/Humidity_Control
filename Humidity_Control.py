@@ -158,6 +158,8 @@ class Form(QMainWindow):
                                                         self.control.states_list[self.control.state],
                                                         self.control.compressor.timer_counter))
     
+    
+    
   def update_water_icon(self):
     if self.control.compressor.compressor_state:
       self.water_label.setPixmap(self.water_icon)
