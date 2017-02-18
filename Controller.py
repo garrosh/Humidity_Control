@@ -120,8 +120,9 @@ class Controller(QObject):
     
   def state_starting(self):
     ''' A state function meant to fill the deques and avoid starting bumps '''
+    
     self.state = 0
-    if len(self.temp_deque) == 180:
+    if len(self.temp_deque) == 18:
       self.check_starting()
      
     
@@ -131,7 +132,16 @@ class Controller(QObject):
       self.timer.timeout.disconnect(self.dispatch_state(self.states_list[self.state]))
       self.timer.timeout.connect(self.state_fast_drying)
     except:
-      timer_disonnect = False
+      pass
+    # Completely reset internal values of compressor, if sent from an other state
+    if self.state != 0:
+      self.compressor.idle_state = False
+      self.compressor.waiting_for_start = False
+      self.compressor.timer_counter = 0
+      self.compressor.ready_state = False
+      self.compressor.compressor_state = False
+      self.compressor.is_active.emit(self.compressor.get_state())
+      self.compressor.updated.emit()
     self.state = 1
       
   def state_fast_drying(self):
@@ -139,12 +149,15 @@ class Controller(QObject):
     The compressor kicks in if the EMC becomes too high, and stops if it becomes too low'''
     self.state = 1
     self.heater.update_heating(self.temperature)
-        
+
     # Validate compressor status relative to EMC
     if self.equilibrium_moisture_content - self.EMC_fast_error > self.EMC_fast_target:
       self.compressor.start_compressor()
     elif self.equilibrium_moisture_content + self.EMC_fast_error < self.EMC_fast_target:
       self.compressor.stop_compressor()
+
+    if self.compressor.idle_state:
+      self.check_fast_drying()
       
   def check_fast_drying(self):
     ''' If the compressor becomes inactive while fast drying, we are ready for slow drying '''
@@ -165,6 +178,9 @@ class Controller(QObject):
     
     if self.equilibrium_moisture_content + self.EMC_slow_error < self.EMC_slow_target:
       self.compressor.stop_compressor()
+
+    if self.compressor.idle_state:
+      self.check_slow_drying()
     
   def check_slow_drying(self):
     ''' When the compressor becomes inactive while slow drying, check if it needs to be started again.
@@ -177,6 +193,8 @@ class Controller(QObject):
       self.timer.timeout.connect(self.state_standby)
       self.heater.half_heating = False
       self.heater.set_heaters(False, False)
+
+    
    
   def state_standby(self):
     pass

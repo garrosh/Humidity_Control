@@ -28,23 +28,22 @@ class Compressor(QObject):
     self.timer_counter = 0
 
   def counter_tick(self):
-    self.timer_counter = self.timer_counter + 1
-    print(self.timer_counter, self.idle_state)
+    self.timer_counter += 1
     # If the compressor is idle, roll back the counter
     if self.idle_state:
       self.timer_counter = 0
 
     # Check if the counter is high enough to fire to make the compressor ready
-    if (not self.ready_state) & self.timer_counter > 18 & (not self.idle_state):
+    if (not self.ready_state) and self.timer_counter > 18 and (not self.idle_state):
       self.timer_counter = 0
       self.set_ready()
     # Check if the counter is high enough to make the compressor idle
-    if self.ready_state & self.timer_counter > 36 & (not self.idle_state):
+    if self.ready_state and self.timer_counter > 36 and (not self.idle_state):
       self.timer_counter = 0
       self.idle_state = True
       self.is_idle.emit()
     # Check if the counter is high enough to make it shutdown from overheating
-    if self.compressor_state & self.timer_counter > 36:
+    if self.compressor_state and self.timer_counter > 36:
       self.timer_counter = 0
       self.react_to_overheat()
 
