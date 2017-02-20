@@ -81,7 +81,7 @@ class Controller(QObject):
     self.timer.timeout.connect(self.complete_sensor_read)
     self.timer.timeout.connect(self.compressor.counter_tick)
     
-    self.timer.start(100)
+    self.timer.start(1000)
     
 
   def request_sensor_read(self):
@@ -122,7 +122,7 @@ class Controller(QObject):
     ''' A state function meant to fill the deques and avoid starting bumps '''
     
     self.state = 0
-    if len(self.temp_deque) == 18:
+    if len(self.temp_deque) == 180:
       self.check_starting()
      
     
