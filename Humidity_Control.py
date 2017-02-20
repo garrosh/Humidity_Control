@@ -68,6 +68,7 @@ class Form(QMainWindow):
     self.maximum_temperature_spinbox.valueChanged.connect(self.control.heater.set_max)
     
     self.reset_button = QPushButton("Start new cycle")
+    self.reset_button.clicked.connect(self.control.check_starting)
     
     
     self.temp_deque_len_label = QLabel()
