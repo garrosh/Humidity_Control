@@ -53,17 +53,17 @@ class Form(QMainWindow):
     
     minimum_temperature_Label = QLabel("Minimum operating temperature")
     self.minimum_temperature_spinbox = QDoubleSpinBox()
-    self.minimum_temperature_spinbox.setDecimals(1)
+    self.minimum_temperature_spinbox.setDecimals(0)
     self.minimum_temperature_spinbox.setRange(15,40)
-    self.minimum_temperature_spinbox.setSingleStep(0.1)
+    self.minimum_temperature_spinbox.setSingleStep(1)
     self.minimum_temperature_spinbox.setValue(25)
     self.minimum_temperature_spinbox.valueChanged.connect(self.control.heater.set_min)
     
     maximum_temperature_Label = QLabel("Maximum operating temperature")
     self.maximum_temperature_spinbox = QDoubleSpinBox()
-    self.maximum_temperature_spinbox.setDecimals(1)
+    self.maximum_temperature_spinbox.setDecimals(0)
     self.maximum_temperature_spinbox.setRange(15,40)
-    self.maximum_temperature_spinbox.setSingleStep(0.1)
+    self.maximum_temperature_spinbox.setSingleStep(1)
     self.maximum_temperature_spinbox.setValue(30)
     self.maximum_temperature_spinbox.valueChanged.connect(self.control.heater.set_max)
     
